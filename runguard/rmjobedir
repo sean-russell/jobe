@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# rmjobedir - remove one Jobe run directory, running as root via sudo.
+#
+# Invoked by the web-server user (see /etc/sudoers.d/jobe-sudoers) in place of a
+# blanket "sudo rm -R /home/jobe/runs/*" rule. That wildcard rule would let a
+# compromised web server delete arbitrary paths as root: sudo matches command
+# arguments with fnmatch as a single space-separated string, so the '*' also
+# matches '/', '..' and spaces (e.g. "rm -R /home/jobe/runs/x /etc").
+#
+# The single argument must name a direct child of /home/jobe/runs called
+# jobe_<token>, be a real directory (not a symlink), and have /home/jobe/runs as
+# its canonical parent. Anything else is refused. A missing directory is treated
+# as success so the caller can clean up idempotently.
+#
+set -eu
+
+runs=/home/jobe/runs
+dir=${1:-}
+
+case "$dir" in
+    "$runs"/jobe_*) ;;
+    *) echo "rmjobedir: refusing '$dir' (not $runs/jobe_*)" >&2; exit 1 ;;
+esac
+
+case "${dir#"$runs"/}" in
+    */* | *..*) echo "rmjobedir: refusing '$dir' (not a direct child of $runs)" >&2; exit 1 ;;
+esac
+
+if [ ! -e "$dir" ] && [ ! -L "$dir" ]; then
+    exit 0
+fi
+
+if [ ! -d "$dir" ] || [ -L "$dir" ]; then
+    echo "rmjobedir: refusing '$dir' (not a plain directory)" >&2
+    exit 1
+fi
+
+if [ "$(cd "$dir/.." && pwd -P)" != "$runs" ]; then
+    echo "rmjobedir: refusing '$dir' (parent is not $runs)" >&2
+    exit 1
+fi
+
+exec /bin/rm -rf -- "$dir"
