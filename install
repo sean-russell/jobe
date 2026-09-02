@@ -92,7 +92,10 @@ def make_sudoers(install_dir, webserver_user, num_jobe_users):
        kill any jobe tasks and delete the run directories.
     '''
     commands = [install_dir + '/runguard/runguard']
-    commands.append('/bin/rm -R /home/jobe/runs/*')
+    # rmjobedir validates its argument and deletes a single run directory. It
+    # replaces a "/bin/rm -R /home/jobe/runs/*" rule, whose wildcard sudo would
+    # also let match "/", ".." and spaces (arbitrary delete as root).
+    commands.append(install_dir + '/runguard/rmjobedir')
     for i in range(num_jobe_users):
         commands.append('/usr/bin/pkill -9 -u jobe{:02d}'.format(i))
         for directory in get_config('clean_up_path', install_dir).split(';'):
@@ -141,6 +144,19 @@ def make_runguard(install_dir):
         print("Compile of runguard failed.")
         print("Check all dependencies are installed, particularly libcgroup-dev")
         raise OSError("Runguard build failed")
+
+
+def harden_privileged_helpers(install_dir):
+    """The web server runs runguard and rmjobedir as root via sudo, so it must
+       not be able to overwrite them - otherwise it could run arbitrary code as
+       root. The earlier 'chown -R webserver_user install_dir' made them web-
+       server-owned; put them back to root and drop group/other access. install
+       runs as root, so a plain chown/chmod is enough."""
+    rgdir = os.path.join(install_dir, 'runguard')
+    for helper in ('runguard', 'rmjobedir'):
+        path = os.path.join(rgdir, helper)
+        do_command('chown root:root {0}'.format(path))
+        do_command('chmod 700 {0}'.format(path))
 
 
 def do_purge(install_dir):
@@ -257,6 +273,7 @@ def main():
         make_runguard(install_dir)
 
         make_sudoers(install_dir, webserver_user, num_jobe_users)
+        harden_privileged_helpers(install_dir)
         try:
             os.remove(LANGUAGE_CACHE_FILE)
         except:

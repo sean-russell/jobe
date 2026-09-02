@@ -192,8 +192,11 @@ abstract class LanguageTask
         }
 
         if ($deleteFiles && $this->workdir) {
-            $dir = $this->workdir;
-            exec("sudo rm -R $dir");
+            // Delete work directory using a secure delete program that prevents
+            // abuse in the event the web server is compromised and a user acquired
+            // www-data acccess.
+            $rmjobedir = dirname(__FILE__) . '/../../runguard/rmjobedir';
+            exec('sudo ' . escapeshellarg($rmjobedir) . ' ' . escapeshellarg($this->workdir));
             $this->workdir = null;
         }
     }
@@ -344,16 +347,59 @@ abstract class LanguageTask
             $sandboxCmd .= " </dev/null\n";
         }
 
+        // Open our own read handles on the redirection targets *before* running
+        // the sandboxed command. bash's `>prog.out` / `2>prog.err` then write
+        // into these same regular files. If the job (or a background process it
+        // leaves running) deletes prog.out/prog.err and drops a symlink or FIFO
+        // in their place, these handles still refer to the original regular
+        // files that received the program's output, so the readback below never
+        // follows a symlink (arbitrary-file disclosure) and never blocks on a
+        // FIFO (permanent hang / jobe-user-slot leak).
+        $outFp = $this->freshOutputHandle("$workdir/prog.out");
+        $errFp = $this->freshOutputHandle("$workdir/prog.err");
+
         file_put_contents('prog.cmd', $sandboxCmd);
         exec('bash prog.cmd');
 
-        $output = file_get_contents("$workdir/prog.out");
-        if (file_exists("{$this->workdir}/prog.err")) {
-            $stderr = file_get_contents("{$this->workdir}/prog.err");
-        } else {
-            $stderr = '';
-        }
+        $output = $this->readOutputHandle($outFp);
+        $stderr = $this->readOutputHandle($errFp);
         return array($output, $stderr);
+    }
+
+
+    /**
+     * Create a fresh, empty regular file at $path (discarding anything a
+     * previous phase left there) and return a read handle held open on it.
+     * Called before the sandboxed command runs, so $path is still trustworthy;
+     * the O_EXCL create means we fail safe rather than follow or truncate a
+     * pre-existing symlink. Returns false on failure.
+     */
+    private function freshOutputHandle($path)
+    {
+        @unlink($path);
+        $fp = @fopen($path, 'x+be');
+        if ($fp === false) {
+            log_message('error', "runInSandbox: could not create sandbox output file $path");
+        }
+        return $fp;
+    }
+
+
+    /**
+     * Read everything written to a handle from freshOutputHandle(). The handle
+     * refers to the original regular file that received the program's output, so
+     * this cannot follow a symlink or block on a FIFO the job may have swapped
+     * in at the same path.
+     */
+    private function readOutputHandle($fp)
+    {
+        if ($fp === false) {
+            return '';
+        }
+        rewind($fp);
+        $data = stream_get_contents($fp);
+        fclose($fp);
+        return $data === false ? '' : $data;
     }
 
 

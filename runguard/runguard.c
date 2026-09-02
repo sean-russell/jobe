@@ -72,6 +72,7 @@
 #include <time.h>
 #include <math.h>
 #include <limits.h>
+#include <sys/prctl.h>
 #if ( USE_CGROUPS == 1 )
 #include <inttypes.h>
 #include <libcgroup.h>
@@ -532,6 +533,15 @@ void setrestrictions()
 	int i;
 
 	struct rlimit lim;
+
+	/* Prevent the sandboxed job from gaining privileges via a setuid/setgid
+	   binary or file capabilities - e.g. building a setuid helper to hop into
+	   another jobe user's uid and evade the per-user pkill cleanup. Must be
+	   set before execvp; safe to set here while still root, and inherited by
+	   every descendant of the job. */
+	if ( prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0 ) {
+		error(errno, "cannot set no_new_privs");
+	}
 
 	/* Clear environment to prevent all kinds of security holes, save PATH */
     /* RJL: Changed to save and restore all standard locale variables */

@@ -1085,3 +1085,8 @@ throughput.
   1. Bug fix: API keys not working.
   1. Increment default memory allocation for Python from 1GB to 1.5GB to accommodate steady growth in memory requirements,
      particularly of support packages.
+
+### 2.2.3 (3 September 2026)
+  1. Plug security hole that allowed an attacker to replace prog.out and/or prog.err with symbolic links (allowed reading anything that www-data could read) or with a pipe (permanently hanging a Jobe worker even across a reboot).
+  1. Prevent a setuid/setgid exploit that allowed one Jobe worker to assume another jobe user's identity.
+  1. Tighten security in the event a user somehow obtained www-data level access (belts and braces).
