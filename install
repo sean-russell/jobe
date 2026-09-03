@@ -131,32 +131,28 @@ def make_directory(dirpath, owner, group, permissions=771):
 
 
 def make_runguard(install_dir):
-    """Make the runguard application"""
+    """Compile runguard and the rmjobedir helper.
+
+       Both are run as root by the web server via sudo, so both must be owned by
+       root and not writable by the web server (otherwise it could overwrite one
+       and run arbitrary code as root). Building them here is what guarantees
+       that: install runs as root, and this happens after the earlier
+       'chown -R webserver_user install_dir', so the fresh binaries are left
+       owned by root:root."""
     runguard_commands = [
         "cd {0}".format(install_dir + '/runguard'),
         "gcc -o runguard runguard.c -lm",
-        "chmod 700 runguard"
+        "chmod 700 runguard",
+        "gcc -O2 -Wall -o rmjobedir rmjobedir.c",
+        "chmod 700 rmjobedir"
     ]
     cmd = ';'.join(runguard_commands)
     try:
         do_command(cmd)
     except OSError as e:
-        print("Compile of runguard failed.")
+        print("Compile of runguard/rmjobedir failed.")
         print("Check all dependencies are installed, particularly libcgroup-dev")
         raise OSError("Runguard build failed")
-
-
-def harden_privileged_helpers(install_dir):
-    """The web server runs runguard and rmjobedir as root via sudo, so it must
-       not be able to overwrite them - otherwise it could run arbitrary code as
-       root. The earlier 'chown -R webserver_user install_dir' made them web-
-       server-owned; put them back to root and drop group/other access. install
-       runs as root, so a plain chown/chmod is enough."""
-    rgdir = os.path.join(install_dir, 'runguard')
-    for helper in ('runguard', 'rmjobedir'):
-        path = os.path.join(rgdir, helper)
-        do_command('chown root:root {0}'.format(path))
-        do_command('chmod 700 {0}'.format(path))
 
 
 def do_purge(install_dir):
@@ -273,7 +269,6 @@ def main():
         make_runguard(install_dir)
 
         make_sudoers(install_dir, webserver_user, num_jobe_users)
-        harden_privileged_helpers(install_dir)
         try:
             os.remove(LANGUAGE_CACHE_FILE)
         except:
