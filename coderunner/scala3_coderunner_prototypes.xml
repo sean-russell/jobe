@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<quiz>
+  <question type="category">
+    <category>
+      <text>$course$/top/Scala 3 prototypes</text>
+    </category>
+    <info format="html">
+      <text></text>
+    </info>
+    <idnumber></idnumber>
+  </question>
+  <question type="coderunner">
+    <name>
+      <text>PROTOTYPE_scala_function</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p><b>scala_function</b>: a Scala 3 "write a function (or class)" question type.</p>
+<p>The student's answer contains top-level Scala 3 definitions (functions, classes, objects,
+case classes, enums...). Each test's <em>test code</em> is a block of Scala statements that is
+run inside a test <code>@main</code> method, typically printing a result, e.g.
+<code>println(square(3))</code>, compared exactly with the expected output.</p>
+<p>All tests are run in a single Jobe job (combinator template) to avoid repeated Scala
+compilation; if that run fails (e.g. an exception) CodeRunner reruns the tests one at a time.
+Tests that use standard input are always run one at a time.</p>
+<p>Compiler warnings do not fail an answer. To make them fatal, set the sandbox parameters to
+<code>{"compileargs": ["-Werror"]}</code>.</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text></text>
+    </generalfeedback>
+    <defaultgrade>1</defaultgrade>
+    <penalty>0</penalty>
+    <hidden>0</hidden>
+    <idnumber></idnumber>
+    <coderunnertype>scala_function</coderunnertype>
+    <prototypetype>2</prototypetype>
+    <allornothing>1</allornothing>
+    <penaltyregime>10, 20, ...</penaltyregime>
+    <precheck>0</precheck>
+    <hidecheck>0</hidecheck>
+    <showsource>0</showsource>
+    <answerboxlines>18</answerboxlines>
+    <answerboxcolumns>100</answerboxcolumns>
+    <answerpreload></answerpreload>
+    <globalextra></globalextra>
+    <useace>1</useace>
+    <resultcolumns></resultcolumns>
+    <template><![CDATA[@main def __coderunner_tests__(): Unit = {
+  val SEPARATOR = "#<ab@17943918#@>#"
+{% for TEST in TESTCASES %}
+  {
+{{ TEST.testcode }}
+  }
+{% if not loop.last %}
+  println(SEPARATOR)
+{% endif %}
+{% endfor %}
+}
+
+{{ STUDENT_ANSWER }}
+]]></template>
+    <iscombinatortemplate>1</iscombinatortemplate>
+    <allowmultiplestdins>0</allowmultiplestdins>
+    <answer></answer>
+    <validateonsave>0</validateonsave>
+    <testsplitterre><![CDATA[|#<ab@17943918#@>#\n|ms]]></testsplitterre>
+    <language>scala</language>
+    <acelang>scala</acelang>
+    <sandbox>jobesandbox</sandbox>
+    <grader>EqualityGrader</grader>
+    <cputimelimitsecs>5</cputimelimitsecs>
+    <memlimitmb></memlimitmb>
+    <sandboxparams></sandboxparams>
+    <templateparams></templateparams>
+    <hoisttemplateparams>1</hoisttemplateparams>
+    <extractcodefromjson>1</extractcodefromjson>
+    <templateparamslang>twig</templateparamslang>
+    <templateparamsevalpertry>0</templateparamsevalpertry>
+    <templateparamsevald>{}</templateparamsevald>
+    <twigall>0</twigall>
+    <uiplugin>ace</uiplugin>
+    <uiparameters></uiparameters>
+    <attachments>0</attachments>
+    <attachmentsrequired>0</attachmentsrequired>
+    <maxfilesize>10240</maxfilesize>
+    <filenamesregex></filenamesregex>
+    <filenamesexplain></filenamesexplain>
+    <displayfeedback>1</displayfeedback>
+    <giveupallowed>0</giveupallowed>
+    <prototypeextra></prototypeextra>
+    <testcases>
+    </testcases>
+  </question>
+  <question type="coderunner">
+    <name>
+      <text>PROTOTYPE_scala_program</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p><b>scala_program</b>: a Scala 3 "write a program" question type.</p>
+<p>The student's answer is a complete Scala 3 program: either a top-level
+<code>@main def name(): Unit</code> or an <code>object</code> with
+<code>def main(args: Array[String]): Unit</code>. Each test supplies <em>standard input</em>
+and the program's output is compared exactly with the expected output. Read input with
+<code>scala.io.StdIn.readLine()</code>.</p>
+<p>If the answer has several entry points, set the sandbox parameters to
+<code>{"main_class": "Name"}</code>. Compiler warnings do not fail an answer; set
+<code>{"compileargs": ["-Werror"]}</code> to make them fatal.</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text></text>
+    </generalfeedback>
+    <defaultgrade>1</defaultgrade>
+    <penalty>0</penalty>
+    <hidden>0</hidden>
+    <idnumber></idnumber>
+    <coderunnertype>scala_program</coderunnertype>
+    <prototypetype>2</prototypetype>
+    <allornothing>1</allornothing>
+    <penaltyregime>10, 20, ...</penaltyregime>
+    <precheck>0</precheck>
+    <hidecheck>0</hidecheck>
+    <showsource>0</showsource>
+    <answerboxlines>18</answerboxlines>
+    <answerboxcolumns>100</answerboxcolumns>
+    <answerpreload></answerpreload>
+    <globalextra></globalextra>
+    <useace>1</useace>
+    <resultcolumns></resultcolumns>
+    <template><![CDATA[{{ STUDENT_ANSWER }}]]></template>
+    <iscombinatortemplate>0</iscombinatortemplate>
+    <allowmultiplestdins>0</allowmultiplestdins>
+    <answer></answer>
+    <validateonsave>0</validateonsave>
+    <testsplitterre></testsplitterre>
+    <language>scala</language>
+    <acelang>scala</acelang>
+    <sandbox>jobesandbox</sandbox>
+    <grader>EqualityGrader</grader>
+    <cputimelimitsecs>5</cputimelimitsecs>
+    <memlimitmb></memlimitmb>
+    <sandboxparams></sandboxparams>
+    <templateparams></templateparams>
+    <hoisttemplateparams>1</hoisttemplateparams>
+    <extractcodefromjson>1</extractcodefromjson>
+    <templateparamslang>twig</templateparamslang>
+    <templateparamsevalpertry>0</templateparamsevalpertry>
+    <templateparamsevald>{}</templateparamsevald>
+    <twigall>0</twigall>
+    <uiplugin>ace</uiplugin>
+    <uiparameters></uiparameters>
+    <attachments>0</attachments>
+    <attachmentsrequired>0</attachmentsrequired>
+    <maxfilesize>10240</maxfilesize>
+    <filenamesregex></filenamesregex>
+    <filenamesexplain></filenamesexplain>
+    <displayfeedback>1</displayfeedback>
+    <giveupallowed>0</giveupallowed>
+    <prototypeextra></prototypeextra>
+    <testcases>
+    </testcases>
+  </question>
+</quiz>
