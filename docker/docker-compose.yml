@@ -1,16 +1,43 @@
-# Run the local Jobe source tree (including Scala 3) in a container.
+# Run the local Jobe source tree (including Scala 3) behind an HAProxy queue.
 #
 #   cd docker
 #   docker compose up -d --build
 #
-# Jobe is then available on the host at http://localhost:4000/jobe/... and, after
+#   Moodle/CodeRunner --> jobe (HAProxy queue, port 4000 on the host)
+#                           --> jobe-worker (Jobe; scale with --scale jobe-worker=N)
+#
+# Jobe is available on the host at http://localhost:4000/jobe/... and, after
 # running ./connect-to-moodle.sh, to the Moodle container at http://jobe/...
+# Queue statistics: http://localhost:8404/
 # See README.md in this directory.
 
 name: jobe-local
 
 services:
   jobe:
+    # The queue. Named "jobe" because it's what clients talk to.
+    build:
+      context: haproxy
+    image: jobe-local-queue:latest
+    container_name: jobe
+    hostname: jobe
+    environment:
+      # Runs each Jobe worker may have in progress at once. Must not exceed
+      # jobe_max_users in app/Config/Jobe.php (16 by default).
+      JOBE_SLOTS: "16"
+      # Longest a run may wait in the queue before getting a "server overload" result.
+      # Keep this below Moodle's HTTP timeout.
+      QUEUE_TIMEOUT: "60s"
+      # Queue length beyond which new runs get "server overload" immediately.
+      QUEUE_MAX: "500"
+    ports:
+      - "4000:80"
+      - "8404:8404"
+    depends_on:
+      - jobe-worker
+    restart: unless-stopped
+
+  jobe-worker:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -19,8 +46,11 @@ services:
         INSTALL_OCTAVE: "false"
         TZ: "Europe/Dublin"
     image: jobe-local:latest
-    container_name: jobe
-    hostname: jobe
-    ports:
-      - "4000:80"
+    volumes:
+      # Jobe's cache of uploaded support files, shared by all workers. Without it,
+      # CodeRunner could upload a file to one worker and have the run go to another.
+      - jobe-files:/home/jobe/files
     restart: unless-stopped
+
+volumes:
+  jobe-files:
