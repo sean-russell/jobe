@@ -123,7 +123,7 @@ class ScalaTask extends LanguageTask
     // current JDK/class path the JVM silently ignores it.
     public static function compilerJvmArgs()
     {
-        $args = self::COMPILER_JVM_ARGS;
+        $args = array_merge(self::COMPILER_JVM_ARGS, self::unsafeAccessArgs());
         $archive = config('Jobe')->scala_cds_archive ?? '';
         if ($archive !== '' && is_readable($archive)) {
             $args[] = '-XX:SharedArchiveFile=' . $archive;
@@ -133,6 +133,50 @@ class ScalaTask extends LanguageTask
             $args = array_merge($args, preg_split('/\s+/', trim($extra)));
         }
         return $args;
+    }
+
+    /**
+     * JVM options needed to stop Java 24+ printing warnings on stderr whenever
+     * sun.misc.Unsafe's memory-access methods are used. The Scala 3.3 compiler
+     * uses them, and so does the Scala runtime for every lazy val, so without
+     * this any program with a lazy val would be reported as a runtime error.
+     * The option only exists from Java 23; older JVMs refuse to start if given
+     * it, hence the version check.
+     */
+    public static function unsafeAccessArgs()
+    {
+        return self::javaFeatureVersion() >= 23 ? ['--sun-misc-unsafe-memory-access=allow'] : [];
+    }
+
+    /**
+     * The feature (major) version of the JVM at self::JAVA, e.g. 21 or 25, or 0
+     * if it can't be determined. Read from the JDK's "release" file where
+     * possible (no process start), falling back to "java -version". Cached per
+     * request.
+     */
+    public static function javaFeatureVersion()
+    {
+        static $version = null;
+        if ($version !== null) {
+            return $version;
+        }
+        $text = '';
+        $java = realpath(self::JAVA);
+        if ($java !== false) {
+            $release = dirname(dirname($java)) . '/release';
+            if (is_readable($release)) {
+                $text = (string) file_get_contents($release);
+            }
+        }
+        if (!preg_match('/JAVA_VERSION="?([0-9][0-9._]*)/', $text, $m)) {
+            $output = [];
+            exec(escapeshellarg(self::JAVA) . ' -version 2>&1', $output);
+            preg_match('/version "?([0-9][0-9._]*)/', implode("\n", $output), $m);
+        }
+        $parts = explode('.', $m[1] ?? '0');
+        // Java 8 and earlier report "1.8.0_x".
+        $version = (int) ($parts[0] === '1' && isset($parts[1]) ? $parts[1] : $parts[0]);
+        return $version;
     }
 
     // The shell command (without the source file) that runs the compiler.
@@ -205,7 +249,8 @@ class ScalaTask extends LanguageTask
     // java <interpreterargs> -cp <scala libs> <main class> <runargs>
     public function getRunCommand()
     {
-        $cmd = array_merge([$this->getExecutablePath()], $this->getParam('interpreterargs'));
+        $cmd = array_merge([$this->getExecutablePath()], self::unsafeAccessArgs(),
+            $this->getParam('interpreterargs'));
         $cmd[] = '-cp';
         $cmd[] = escapeshellarg(self::runtimeClasspath());
         $cmd[] = escapeshellarg($this->getTargetFile());

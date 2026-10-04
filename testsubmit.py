@@ -751,6 +751,18 @@ object Second:
 },
 
 {
+    'comment': 'Scala program using a lazy val (no JVM Unsafe warnings on Java 24+)',
+    'language_id': 'scala',
+    'sourcecode': r'''
+object Main:
+  lazy val greeting = "Hello world"
+  def main(args: Array[String]): Unit = println(greeting)
+''',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 15, 'stdout': 'Hello world\n', 'stderr': ''}
+},
+
+{
     'comment': 'Scala program that loops forever',
     'language_id': 'scala',
     'sourcecode': r'''

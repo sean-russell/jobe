@@ -76,7 +76,7 @@ class ScalaCds extends BaseCommand
         // Must match ScalaTask::compilerCommand() except for the archive option.
         $bits = array_merge(
             [ScalaTask::JAVA],
-            array_map('escapeshellarg', ScalaTask::COMPILER_JVM_ARGS),
+            array_map('escapeshellarg', array_merge(ScalaTask::COMPILER_JVM_ARGS, ScalaTask::unsafeAccessArgs())),
             ['-XX:ArchiveClassesAtExit=' . escapeshellarg($archive)],
             ['-cp', escapeshellarg(ScalaTask::compilerClasspath()), 'dotty.tools.dotc.Main'],
             ['-color:never', '-d', '.', '-classpath', escapeshellarg(ScalaTask::runtimeClasspath())],
