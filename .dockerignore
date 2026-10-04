@@ -1,0 +1,9 @@
+# Build context for docker/Dockerfile (context is the repository root).
+.git
+*.patch
+docker/README.md
+runguard/runguard
+runguard/rmjobedir
+writable/logs/*.log
+writable/debugbar/*.json
+writable/session/ci_session*

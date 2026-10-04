@@ -1,0 +1,26 @@
+# Run the local Jobe source tree (including Scala 3) in a container.
+#
+#   cd docker
+#   docker compose up -d --build
+#
+# Jobe is then available on the host at http://localhost:4000/jobe/... and, after
+# running ./connect-to-moodle.sh, to the Moodle container at http://jobe/...
+# See README.md in this directory.
+
+name: jobe-local
+
+services:
+  jobe:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        SCALA_VERSION: "3.3.6"
+        INSTALL_OCTAVE: "false"
+        TZ: "Europe/Dublin"
+    image: jobe-local:latest
+    container_name: jobe
+    hostname: jobe
+    ports:
+      - "4000:80"
+    restart: unless-stopped
