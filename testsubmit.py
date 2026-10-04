@@ -638,6 +638,140 @@ public class Test {
     'expect': { 'outcome': 15, 'stdout': "Un rôle délétère\n"}
 },
 
+# ================= Scala 3 tests ==================
+{
+    'comment': 'Correct Scala 3 program using @main and stdin',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def hello(): Unit =
+  val n = scala.io.StdIn.readLine().trim.toInt
+  println(s"Sum to $n is ${(1 to n).sum}")
+''',
+    'input': '10\n',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 15, 'stdout': 'Sum to 10 is 55\n'}
+},
+
+{
+    'comment': 'Correct Scala program with object main and supplied sourcefilename',
+    'language_id': 'scala',
+    'sourcecode': r'''
+// object NotThisOne { }
+object Greeter {
+  def main(args: Array[String]): Unit = {
+    println("Hello from Scala")
+  }
+}
+''',
+    'sourcefilename': 'Greeter.scala',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 15, 'stdout': 'Hello from Scala\n'}
+},
+
+{
+    'comment': 'Scala program in a package, using App',
+    'language_id': 'scala',
+    'sourcecode': r'''
+package nz.ac.jobe
+
+case class Point(x: Int, y: Int)
+
+object Main extends App:
+  println(Point(1, 2))
+''',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 15, 'stdout': 'Point(1,2)\n'}
+},
+
+{
+    'comment': 'Scala program with main_class parameter',
+    'language_id': 'scala',
+    'sourcecode': r'''
+object First:
+  def main(args: Array[String]): Unit = println("Wrong one")
+
+object Second:
+  def main(args: Array[String]): Unit = println("Right one")
+''',
+    'parameters': {'cputime':10, 'main_class': 'Second'},
+    'expect': { 'outcome': 15, 'stdout': 'Right one\n'}
+},
+
+{
+    'comment': 'Scala program with a compile-time warning (should still run)',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def run(): Unit =
+  val xs = List(1, 2, 3)
+  xs match
+    case Nil => println("empty")
+    case h :: _ => println(s"head $h")
+  ()
+  def f(o: Option[Int]) = o match { case Some(v) => v }
+  println(f(Some(42)))
+''',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 15, 'stdout': 'head 1\n42\n'}
+},
+
+{
+    'comment': 'Scala warning made fatal by -Werror',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def run(): Unit =
+  def f(o: Option[Int]) = o match { case Some(v) => v }
+  println(f(Some(42)))
+''',
+    'parameters': {'cputime':10, 'compileargs': ['-Werror']},
+    'expect': { 'outcome': 11 }
+},
+
+{
+    'comment': 'Scala program with a type error',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def bad(): Unit =
+  val x: Int = "not an int"
+  println(x)
+''',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 11 }
+},
+
+{
+    'comment': 'Scala program with a runtime exception',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def boom(): Unit =
+  println("before")
+  println(List.empty[Int].head)
+''',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 12, 'stdout': 'before\n'}
+},
+
+{
+    'comment': 'Scala program that loops forever',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def spin(): Unit =
+  var i = 0L
+  while true do i += 1
+''',
+    'parameters': {'cputime':3},
+    'expect': { 'outcome': 13 }
+},
+
+{
+    'comment': 'Scala program with Unicode output (will fail unless Jobe set up for UTF-8)',
+    'language_id': 'scala',
+    'sourcecode': r'''
+@main def unicode(): Unit = println("Un rôle délétère")
+''',
+    'parameters': {'cputime':10},
+    'expect': { 'outcome': 15, 'stdout': "Un rôle délétère\n"}
+},
+
 #================= C++ tests ======================
 {
     'comment': 'Test good C++ hello world',
@@ -1202,7 +1336,7 @@ other users' submissions to fail."""
     parser.add_argument('-v', '--verbose', action='store_true',
         help='Print extra info during tests')
     parser.add_argument('langs', nargs='*',
-        help='Language(s) to check. One or more of: c cpp python3 java php pascal octave nodejs')
+        help='Language(s) to check. One or more of: c cpp python3 java scala php pascal octave nodejs')
     parser.add_argument('-w', '--window',
         default='30',
         help='''The time window in secs over which to measure sustainable throughput.

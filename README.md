@@ -28,7 +28,7 @@ various status information plus the output and error output from the run.
 The interface is via a RESTful API, that is documented [here](./restapi.pdf).
 
 The languages C, C++, Python3, Python2,
-Octave, Java, Pascal and PHP are all built-in. Other languages can be added
+Octave, Java, Scala 3, Pascal and PHP are all built-in. Other languages can be added
 fairly easily although if using Jobe from CodeRunner it is usually even
 easier to write a Python-based question type that scripts the execution of
 the required language. See the
@@ -140,6 +140,36 @@ all currently-supported languages is the following:
 
 Octave and fp-compiler are required only if you need to run Octave or Pascal
 programs respectively.
+
+### Installing Scala 3 (optional)
+
+Scala 3 isn't packaged by Ubuntu, so if you want Scala you need to install a
+Scala 3 distribution yourself. It needs the JDK (`default-jdk` above). Jobe
+expects it at `/usr/local/scala3` (configurable via `scala_home` in
+`app/Config/Jobe.php`) and calls the compiler and JVM directly, so the
+`scala`/`scalac` launcher scripts aren't needed on the PATH. For example, to
+install the 3.3 LTS release:
+
+    cd /tmp
+    wget https://github.com/scala/scala3/releases/download/3.3.6/scala3-3.3.6.tar.gz
+    sudo tar xzf scala3-3.3.6.tar.gz -C /usr/local
+    sudo ln -sfn /usr/local/scala3-3.3.6 /usr/local/scala3
+    sudo rm -f /tmp/jobe_language_cache_file   # So Jobe re-detects languages
+
+The distribution must be readable by all users (the default for a root-owned
+tarball extraction). Any Scala 3 release whose `lib` directory contains the
+`scala3-compiler_3`, `scala3-library_3` and `scala-library` jars should work.
+
+Compiling Scala is much slower than compiling Java: each job starts a fresh
+JVM to run the compiler, which takes 2-3 CPU seconds even for a trivial
+program. You can roughly halve that by building a class-data-sharing
+archive for the compiler, as root, from the Jobe directory:
+
+    sudo php spark jobe:scalacds
+
+then setting `scala_cds_archive` in `app/Config/Jobe.php` to the path it
+prints (by default `/usr/local/scala3/jobe-scalac.jsa`). Re-run the command
+after upgrading the JDK or Scala; a stale archive is silently ignored.
 
 Similar commands should work on other Debian-based Linux distributions,
 although some differences are inevitable (e.g.: acl is preinstalled in Ubuntu,
@@ -607,6 +637,9 @@ An empty default means the global default is used.
   <td>java</td><td>Java</td><td></td><td>["-Xrs", "-Xss8m", "-Xmx200m"]</td>
 </tr>
 <tr>
+  <td>scala</td><td>Scala 3</td><td></td><td>["-Xrs", "-Xss8m", "-Xmx200m"]</td>
+</tr>
+<tr>
   <td>nodejs</td><td>JavaScript (nodejs)</td><td></td><td>["--use_strict"]</td>
 </tr>
 <tr>
@@ -620,6 +653,25 @@ An empty default means the global default is used.
 </tr>
 
 </table>
+
+### Scala-specific behaviour
+
+ * The source file defaults to `prog.scala`; the file name need not match any
+   class name.
+ * The class to run is found from the source: the first top-level
+   `@main def name`, else an `object X extends App`, else the object
+   enclosing the first `def main(`, with any leading `package` clause
+   prepended. Like Java's main-class detection this uses regular
+   expressions, so it can be fooled; a *main_class* parameter (e.g.
+   `{"main_class": "mypackage.Main"}`) overrides it.
+ * Compiler warnings don't fail compilation (unlike Java and C with the
+   default arguments) and are not reported. Set *compileargs* to `["-Werror"]`
+   to make warnings fatal, or add other scalac options there, e.g.
+   `["-deprecation", "-Werror"]`.
+ * As for Java, *memorylimit* is ignored (the JVM's `-Xmx` in
+   *interpreterargs* limits the heap) and *numprocs* is at least 256.
+ * Compilation is always allowed at least 20 seconds of CPU time, regardless
+   of the *cputime* parameter, which applies only to the run.
 
 ## Configuration
 
@@ -1090,3 +1142,9 @@ throughput.
   1. Plug security hole that allowed an attacker to replace prog.out and/or prog.err with symbolic links (allowed reading anything that www-data could read) or with a pipe (permanently hanging a Jobe worker even across a reboot).
   1. Prevent a setuid/setgid exploit that allowed one Jobe worker to assume another jobe user's identity.
   1. Tighten security in the event a user somehow obtained www-data level access (belts and braces).
+
+### 2.3.0 (unreleased)
+  1. Add Scala 3 (language_id `scala`). The Scala distribution must be installed
+     separately; see *Installing Scala 3*. Includes a `php spark jobe:scalacds` command
+     to build a CDS archive that roughly halves Scala compile time, and Scala tests in
+     testsubmit.py.

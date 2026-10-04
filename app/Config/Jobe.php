@@ -92,4 +92,29 @@ class Jobe extends BaseConfig
     */
     public string $javac_extraflags = ''; //'-J-XX:ActiveProcessorCount=1';
     public string $java_extraflags = ''; //'-XX:ActiveProcessorCount=1';
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scala 3
+    |--------------------------------------------------------------------------
+    |
+    | scala_home is the directory of an unpacked Scala 3 distribution, i.e.
+    | the one containing lib/scala3-compiler_3-*.jar. It must be readable by
+    | the jobe users. If it doesn't exist, Scala is not offered as a language.
+    | After changing it, delete /tmp/jobe_language_cache_file (or reboot).
+    |
+    | scala_cds_archive optionally names a class-data-sharing archive for the
+    | compiler, which roughly halves compile time. Build it as root with
+    |     sudo php spark jobe:scalacds
+    | from the Jobe directory (that command prints the path to set here). It
+    | must be rebuilt whenever the JDK or Scala is upgraded; a stale archive is
+    | silently ignored by the JVM, so nothing breaks, it just stops helping.
+    |
+    | scalac_jvmflags are extra JVM flags for the compiler; scala_extraflags
+    | are extra JVM flags when running the compiled program (cf. java_extraflags).
+    */
+    public string $scala_home = '/usr/local/scala3';
+    public string $scala_cds_archive = '';  // e.g. '/usr/local/scala3/jobe-scalac.jsa'
+    public string $scalac_jvmflags = '';    // e.g. '-XX:ActiveProcessorCount=1'
+    public string $scala_extraflags = '';   // e.g. '-XX:ActiveProcessorCount=1'
 }
